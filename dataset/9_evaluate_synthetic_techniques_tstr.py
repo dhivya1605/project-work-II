@@ -21,12 +21,13 @@ REAL_DATASET_FILE = 'crop-dataset.xlsx'
 TECHNIQUE_FILES = {
     "T1_Sobol": "1_synthetic_crop_data_sobol.xlsx",
     "T2_TruncNorm": "2_synthetic_crop_data_truncnorm.xlsx",
-    "T3_Beta_Crop": "3_Synthetic_crop_data_beta_crop_specific.xlsx",
+    # "T3_Beta_Crop": "3_Synthetic_crop_data_beta_crop_specific.xlsx",
     "T4_Beta_Final": "4_Synthetic_Crop_Data_Beta_Final.xlsx",
     "T5_Copula": "5_Synthetic_Crop_Data_Copula_Final.xlsx",
-    "T6_Best_Copula": "6_Synthetic_Crop_Data_Best_Copula.xlsx",
+    # "T6_Best_Copula": "6_Synthetic_Crop_Data_Best_Copula.xlsx",
     "T7_AHAPSF": "7_Synthetic_Crop_Data_AHAPSF.xlsx",
-    "T8_Hybrid_Final": "8_Synthetic_Crop_Data_Hybrid_Final.xlsx",
+    # "T8_Hybrid_Final": "8_Synthetic_Crop_Data_Hybrid_Final.xlsx",
+    "T9_LHS": "f_synthetic_crop_data_lhs.xlsx",
 }
 
 NUMERIC_FEATURES = ['SOIL_PH', 'CROPDURATION', 'TEMP', 'WATERREQUIRED',

@@ -1,0 +1,20 @@
+{
+  "selected_columns": [
+    "TEMP",
+    "WATERREQUIRED",
+    "RELATIVE_HUMIDITY",
+    "CROPDURATION"
+  ],
+  "num_features": 4,
+  "num_classes": 49,
+  "hyperparameters": {
+    "embed_dim": 32,
+    "n_heads": 2,
+    "n_transformer_layers": 1,
+    "ff_dim": 96,
+    "dropout": 0.0,
+    "learning_rate": 0.0017585182823535962
+  },
+  "test_accuracy": 0.964625850340136,
+  "final_val_accuracy": 0.9825680255889893
+}
