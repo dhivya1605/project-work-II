@@ -222,13 +222,57 @@ class CropPredictor:
         }
 
 
-if __name__ == "__main__":
+def run_interactive_cli():
+    print("=" * 65)
+    print("  🌾 TABKANET EXPLAINABLE CROP RECOMMENDATION SYSTEM (CLI)")
+    print("=" * 65)
+    print("Loading trained model artifacts from ./artifacts/ ...")
+    
     predictor = CropPredictor()
-    sample_input = {
-        "N": 80, "P": 40, "K": 40, "SOIL_PH": 6.5,
-        "TEMP": 28.0, "WATERREQUIRED": 1200.0,
-        "RELATIVE_HUMIDITY": 80.0, "CROPDURATION": 120.0,
-    }
-    res = predictor.predict(sample_input)
-    print(f"Predicted Crop: {res['predicted_crop']} ({res['confidence_pct']}%)")
-    print(f"Top 5: {res['top_k_crops']}")
+    print("✅ Model loaded successfully!")
+    print("\nPlease enter the agronomic & environmental values below.")
+    print("(Press ENTER to accept the default value shown in brackets)\n")
+
+    input_dict = {}
+    prompts = [
+        ("N", "Nitrogen (N) [mg/kg]", 50.0),
+        ("P", "Phosphorus (P) [mg/kg]", 40.0),
+        ("K", "Potassium (K) [mg/kg]", 40.0),
+        ("SOIL_PH", "Soil pH (0-14)", 6.5),
+        ("TEMP", "Temperature (°C)", 25.0),
+        ("WATERREQUIRED", "Water / Rainfall (mm)", 1000.0),
+        ("RELATIVE_HUMIDITY", "Relative Humidity (%)", 70.0),
+        ("CROPDURATION", "Crop Duration (Days)", 120.0),
+    ]
+
+    for key, label, default_val in prompts:
+        try:
+            val_str = input(f"  ➜ {label} [{default_val}]: ").strip()
+            if val_str == "":
+                input_dict[key] = float(default_val)
+            else:
+                input_dict[key] = float(val_str)
+        except ValueError:
+            print(f"    ⚠️ Invalid input. Using default value: {default_val}")
+            input_dict[key] = float(default_val)
+
+    print("\n" + "─" * 65)
+    print("Running TabKANet inference...")
+    result = predictor.predict(input_dict)
+
+    print("\n" + "=" * 65)
+    print("  🎯 PREDICTION RESULT")
+    print("=" * 65)
+    print(f"  Recommended Crop : 🌾 {result['predicted_crop'].upper()}")
+    print(f"  Confidence Score : 📊 {result['confidence_pct']}%")
+    print("─" * 65)
+    print("  Top 5 Predictions Probability Distribution:")
+    for rank, (crop, prob) in enumerate(result['top_k_crops'], 1):
+        bar_len = int(prob * 25)
+        bar = "█" * bar_len
+        print(f"    {rank}. {crop.title():18s} | {prob * 100:6.2f}%  {bar}")
+    print("=" * 65 + "\n")
+
+
+if __name__ == "__main__":
+    run_interactive_cli()

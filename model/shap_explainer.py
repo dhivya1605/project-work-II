@@ -203,16 +203,101 @@ class CropSHAPExplainer:
         }
 
 
-if __name__ == "__main__":
+def run_terminal_shap_cli():
+    print("=" * 70)
+    print("  🧠 TABKANET SHAP LOCAL EXPLAINABILITY MODULE (CLI)")
+    print("=" * 70)
+    print("Loading trained model artifacts & background reference dataset...")
+    
     predictor = CropPredictor()
     explainer = CropSHAPExplainer(predictor)
-    test_input = {
-        "N": 90, "P": 42, "K": 43, "SOIL_PH": 6.5,
-        "TEMP": 27.5, "WATERREQUIRED": 1250.0,
-        "RELATIVE_HUMIDITY": 80.0, "CROPDURATION": 120.0,
-    }
-    explanation = explainer.explain(test_input)
-    print("SHAP Explanation Summary:")
-    print(explanation["explanation_text"])
-    print("\nSHAP Table:")
-    print(explanation["shap_table"][["Feature_Name", "User_Value", "SHAP_Value", "Impact"]])
+    print("✅ Model & SHAP Explainer loaded successfully!\n")
+    print("Please enter the agronomic & environmental values below.")
+    print("(Press ENTER to accept the default value shown in brackets)\n")
+
+    input_dict = {}
+    prompts = [
+        ("N", "Nitrogen (N) [mg/kg]", 50.0),
+        ("P", "Phosphorus (P) [mg/kg]", 40.0),
+        ("K", "Potassium (K) [mg/kg]", 40.0),
+        ("SOIL_PH", "Soil pH (0-14)", 6.5),
+        ("TEMP", "Temperature (°C)", 25.0),
+        ("WATERREQUIRED", "Water / Rainfall (mm)", 1000.0),
+        ("RELATIVE_HUMIDITY", "Relative Humidity (%)", 70.0),
+        ("CROPDURATION", "Crop Duration (Days)", 120.0),
+    ]
+
+    for key, label, default_val in prompts:
+        try:
+            val_str = input(f"  ➜ {label} [{default_val}]: ").strip()
+            if val_str == "":
+                input_dict[key] = float(default_val)
+            else:
+                input_dict[key] = float(val_str)
+        except ValueError:
+            print(f"    ⚠️ Invalid input. Using default value: {default_val}")
+            input_dict[key] = float(default_val)
+
+    print("\n" + "─" * 70)
+    print("Computing SHAP local feature attributions (KernelExplainer)...")
+    
+    pred_res = predictor.predict(input_dict)
+    explanation = explainer.explain(input_dict)
+
+    crop_name = explanation["crop_name"]
+    confidence_pct = pred_res["confidence_pct"]
+    base_val = explanation["base_value"]
+    shap_df = explanation["shap_table"]
+
+    print("\n" + "=" * 70)
+    print(f"  🎯 PREDICTED CROP : 🌾 {crop_name.upper()} ({confidence_pct}% Confidence)")
+    print(f"  📊 BASELINE PROBABILITY : {base_val * 100:.2f}% (Average dataset expectation)")
+    print("=" * 70)
+
+    print("\n  🔍 FEATURE ATTRIBUTION BREAKDOWN (SHAP VALUES):")
+    print("  " + "─" * 66)
+    print(f"  {'Feature Name':24s} | {'Input Val':10s} | {'SHAP Score':11s} | {'Impact'}")
+    print("  " + "─" * 66)
+
+    for _, row in shap_df.iterrows():
+        fname = row["Feature_Name"]
+        uval = f"{row['User_Value']:.1f}"
+        sval = row["SHAP_Value"]
+        
+        # Format direction indicator
+        if sval > 1e-4:
+            impact_str = f"➕ Positive (+{sval:+.4f})"
+        elif sval < -1e-4:
+            impact_str = f"➖ Negative ({sval:+.4f})"
+        else:
+            impact_str = f"⚪ Neutral ({sval:+.4f})"
+
+        print(f"  {fname:24s} | {uval:10s} | {sval:^+11.4f} | {impact_str}")
+    print("  " + "─" * 66)
+
+    print("\n  📈 SHAP FEATURE CONTRIBUTION GRAPH:")
+    print("  " + "─" * 66)
+    for _, row in shap_df.iterrows():
+        fname = row["Feature_Name"]
+        sval = row["SHAP_Value"]
+        
+        # Draw ASCII bar graph for positive vs negative contributions
+        bar_units = int(abs(sval) * 100)
+        if sval > 1e-4:
+            bar = "🟩 " + "█" * min(bar_units, 25) + f" (+{sval:.4f})"
+        elif sval < -1e-4:
+            bar = "🟥 " + "█" * min(bar_units, 25) + f" ({sval:.4f})"
+        else:
+            bar = "⬜ (0.0000)"
+        
+        print(f"  {fname:24s} | {bar}")
+
+    print("  " + "─" * 66)
+
+    print("\n  💬 NATURAL LANGUAGE EXPLANATION:")
+    print(f"  {explanation['explanation_text']}")
+    print("=" * 70 + "\n")
+
+
+if __name__ == "__main__":
+    run_terminal_shap_cli()

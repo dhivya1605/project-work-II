@@ -31,6 +31,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 from sfoa import SFOAFeatureSelector
 from dlo import DLOHyperparameterOptimizer
@@ -219,8 +220,26 @@ def main():
     with torch.no_grad():
         test_logits = final_model(torch.tensor(X_test_scaled).to(DEVICE))
         test_preds = test_logits.argmax(dim=1).cpu().numpy()
-    test_acc = (test_preds == y_test).mean()
-    print(f"Held-out TEST accuracy: {test_acc:.4f}")
+
+    test_acc = accuracy_score(y_test, test_preds)
+    test_prec_weighted = precision_score(y_test, test_preds, average="weighted", zero_division=0)
+    test_rec_weighted = recall_score(y_test, test_preds, average="weighted", zero_division=0)
+    test_f1_weighted = f1_score(y_test, test_preds, average="weighted", zero_division=0)
+
+    test_prec_macro = precision_score(y_test, test_preds, average="macro", zero_division=0)
+    test_rec_macro = recall_score(y_test, test_preds, average="macro", zero_division=0)
+    test_f1_macro = f1_score(y_test, test_preds, average="macro", zero_division=0)
+
+    print("\n" + "=" * 70)
+    print("HELD-OUT TEST SET EVALUATION METRICS")
+    print("=" * 70)
+    print(f"  Test Accuracy:        {test_acc:.4f} ({test_acc * 100:.2f}%)")
+    print(f"  Precision (Weighted): {test_prec_weighted:.4f}")
+    print(f"  Recall (Weighted):    {test_rec_weighted:.4f}")
+    print(f"  F1-Score (Weighted):  {test_f1_weighted:.4f}")
+    print(f"  Precision (Macro):    {test_prec_macro:.4f}")
+    print(f"  Recall (Macro):       {test_rec_macro:.4f}")
+    print(f"  F1-Score (Macro):     {test_f1_macro:.4f}")
 
     # ---- Save everything the dashboard needs ----
     out_dir = cfg["OUTPUT_DIR"]
@@ -237,6 +256,12 @@ def main():
             "num_classes": num_classes,
             "hyperparameters": best_hyperparams,
             "test_accuracy": float(test_acc),
+            "test_precision": float(test_prec_weighted),
+            "test_recall": float(test_rec_weighted),
+            "test_f1_score": float(test_f1_weighted),
+            "test_precision_macro": float(test_prec_macro),
+            "test_recall_macro": float(test_rec_macro),
+            "test_f1_score_macro": float(test_f1_macro),
             "final_val_accuracy": float(final_val_acc),
         }, f, indent=2)
 
