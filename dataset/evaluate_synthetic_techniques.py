@@ -1,5 +1,6 @@
-# 9_evaluate_synthetic_techniques_tstr.py
+# evaluate_synthetic_techniques_tstr.py
 import pandas as pd
+import os
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -16,8 +17,9 @@ RANDOM_STATE = 42
 TEST_SAMPLES_PER_CROP = 20
 TARGET = 'CROPS'
 REAL_DATASET_FILE = 'crop-dataset.xlsx'
+N_JOBS = max(1, int(os.environ.get("TSTR_N_JOBS", "1")))
 
-# All 8 generated synthetic datasets
+# All synthetic datasets
 TECHNIQUE_FILES = {
     "T1_Sobol": "1_synthetic_crop_data_sobol.xlsx",
     "T2_TruncNorm": "2_synthetic_crop_data_truncnorm.xlsx",
@@ -28,13 +30,19 @@ TECHNIQUE_FILES = {
     "T7_AHAPSF": "7_Synthetic_Crop_Data_AHAPSF.xlsx",
     # "T8_Hybrid_Final": "8_Synthetic_Crop_Data_Hybrid_Final.xlsx",
     "T9_LHS": "f_synthetic_crop_data_lhs.xlsx",
+    "T10_AHAPSF1": "10_synthetic_crop_data_ahapsf1.xlsx",   
+    "T11_AHAPSF2": "AHAPSF2_synthetic_dataset.xlsx",
+    "T12_AHAPSF3": "AHAPSF3_synthetic_dataset.xlsx",
+    "T13_AHAPSF4": "S4_synthetic_dataset.xlsx",
+    
+    
 }
 
 NUMERIC_FEATURES = ['SOIL_PH', 'CROPDURATION', 'TEMP', 'WATERREQUIRED',
                     'RELATIVE_HUMIDITY', 'N', 'P', 'K']
 
 # ========================== CREATE REAL TEST SET (Strict Ranges) ==========================
-print(f"Creating Real Test Set from {REAL_DATASET_FILE} (per crop min/max ranges)...")
+print(f"Creating  Test Set from {REAL_DATASET_FILE} (per crop min/max ranges)...")
 
 df_real = pd.read_excel(REAL_DATASET_FILE)
 df_real.columns = [col.strip().replace('\n', ' ').replace(' ', '_')
@@ -84,13 +92,17 @@ for _, row in df_real.iterrows():
         test_rows.append(sample)
 
 df_test = pd.DataFrame(test_rows)
-print(f"Real test set created: {len(df_test)} samples ({TEST_SAMPLES_PER_CROP} per crop)\n")
+print(f"Test set created: {len(df_test)} samples ({TEST_SAMPLES_PER_CROP} per crop)\n")
 
-# Fit LabelEncoder on the full list of crops from df_real
+# Fit LabelEncoder ONLY on real dataset crops (ensures consecutive 0..N-1 labels required by XGBoost)
+# Extra crops in synthetic files (e.g. 'pearl millet') are filtered out during training — they
+# cannot appear in the real test set, so they add no value to TSTR evaluation.
 label_encoder = LabelEncoder()
 label_encoder.fit(df_real['CROPS'].astype(str).str.strip().unique())
+known_crops = set(label_encoder.classes_)  # set of crops the encoder knows
 
-y_test = label_encoder.transform(df_test['CROPS'].astype(str).str.strip())
+# Save string crop labels for the test set — needed for per-technique local encoding later
+y_test_str = df_test['CROPS'].astype(str).str.strip().values
 X_test = df_test[NUMERIC_FEATURES].values.astype(np.float32)
 
 # Impute NaNs in X_test if any exist after generation
@@ -101,7 +113,7 @@ if np.isnan(X_test).any():
 
 
 # ========================== TSTR EVALUATION ==========================
-print("Starting TSTR Evaluation using ML Models...\n")
+print("Starting Evaluation using ML Models...\n")
 
 final_results = {model: {} for model in ["RF", "XGBoost", "SVM", "kNN"]}
 
@@ -118,6 +130,28 @@ for tech_key, train_file in TECHNIQUE_FILES.items():
                         .replace('(', '').replace(')', '').replace('/', '_').upper()
                         for col in df_train.columns]
 
+    # Filter out rows whose crop label is not in the real dataset
+    df_train['CROPS'] = df_train['CROPS'].astype(str).str.strip()
+    before = len(df_train)
+    df_train = df_train[df_train['CROPS'].isin(known_crops)].reset_index(drop=True)
+    dropped = before - len(df_train)
+    if dropped > 0:
+        print(f"   ⚠️  Dropped {dropped} rows with unknown crop labels not present in real dataset.")
+
+    # --- Per-technique local LabelEncoder ---
+    # XGBoost requires labels 0..K-1 with NO gaps. A global encoder gives gaps when a
+    # synthetic file is missing some crops. So we fit a fresh encoder on only the crops
+    # present in THIS file, and also filter the test set to the same crops.
+    crops_in_train = sorted(df_train['CROPS'].unique())
+    local_enc = LabelEncoder().fit(crops_in_train)
+
+    y_train = local_enc.transform(df_train['CROPS'])
+
+    # Filter test set to crops present in this technique's training data
+    test_mask = np.array([c in set(crops_in_train) for c in y_test_str])
+    X_test_tech = X_test[test_mask]
+    y_test_tech = local_enc.transform(y_test_str[test_mask])
+
     X_train = df_train[NUMERIC_FEATURES].values.astype(np.float32)
 
     # Impute NaNs in X_train if any exist
@@ -126,15 +160,18 @@ for tech_key, train_file in TECHNIQUE_FILES.items():
         imputer_train = SimpleImputer(strategy='mean')
         X_train = imputer_train.fit_transform(X_train)
 
-    y_train = label_encoder.transform(df_train['CROPS'].astype(str).str.strip())
-
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    X_test_scaled = scaler.transform(X_test_tech)
 
     models = {
-        "RF": RandomForestClassifier(n_estimators=300, random_state=RANDOM_STATE, n_jobs=-1),
-        "XGBoost": XGBClassifier(n_estimators=200, random_state=RANDOM_STATE, eval_metric='mlogloss'),
+        "RF": RandomForestClassifier(
+    n_estimators=300, random_state=RANDOM_STATE, n_jobs=N_JOBS
+),
+"XGBoost": XGBClassifier(
+    n_estimators=200, random_state=RANDOM_STATE,
+    eval_metric="mlogloss", n_jobs=N_JOBS
+),
         "SVM": SVC(C=10, kernel='rbf', random_state=RANDOM_STATE),
         "kNN": KNeighborsClassifier(n_neighbors=7)
     }
@@ -144,13 +181,13 @@ for tech_key, train_file in TECHNIQUE_FILES.items():
         pred = model.predict(X_test_scaled)
 
         final_results[model_name][tech_key] = {
-            'Accuracy': round(accuracy_score(y_test, pred), 4),
-            'Precision': round(precision_score(y_test, pred, average='macro', zero_division=0), 4),
-            'Recall': round(recall_score(y_test, pred, average='macro', zero_division=0), 4),
-            'F1': round(f1_score(y_test, pred, average='macro', zero_division=0), 4)
+            'Accuracy': round(accuracy_score(y_test_tech, pred), 4),
+            'Precision': round(precision_score(y_test_tech, pred, average='macro', zero_division=0), 4),
+            'Recall': round(recall_score(y_test_tech, pred, average='macro', zero_division=0), 4),
+            'F1': round(f1_score(y_test_tech, pred, average='macro', zero_division=0), 4)
         }
 
-    print(f"   ✓ {tech_key} completed.")
+    print(f"   ✓ {tech_key} completed ({len(crops_in_train)} crops evaluated).")
 
 # ========================== PRINT TABLES ==========================
 print("\n" + "="*140)
@@ -185,7 +222,7 @@ for model_name in ["RF", "XGBoost", "SVM", "kNN"]:
         results_list.append(row_data)
 
 df_save = pd.DataFrame(results_list).set_index('Model_Metric')
-output_excel = "TSTR_ML_Results_All_Metrics.xlsx"
+output_excel = "_ML_Results_All_Metrics.xlsx"
 df_save.to_excel(output_excel)
 
 print("\n" + "="*140)

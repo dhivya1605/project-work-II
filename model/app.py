@@ -113,8 +113,10 @@ def main():
         "Custom Input": None,
         "Rice Preset (High Water, High Temp)": {"N": 90, "P": 42, "K": 43, "SOIL_PH": 6.5, "TEMP": 27.5, "WATERREQUIRED": 1850, "RELATIVE_HUMIDITY": 82, "CROPDURATION": 130},
         "Wheat Preset (Moderate Temp, Dry)": {"N": 60, "P": 35, "K": 35, "SOIL_PH": 6.8, "TEMP": 18.0, "WATERREQUIRED": 450, "RELATIVE_HUMIDITY": 55, "CROPDURATION": 110},
-        "Coffee Preset (High Altitude, Acidic)": {"N": 100, "P": 25, "K": 110, "SOIL_PH": 5.8, "TEMP": 23.0, "WATERREQUIRED": 1500, "RELATIVE_HUMIDITY": 75, "CROPDURATION": 180},
+        "Groundnut Preset (Acidic Soil, Warm)": {"N": 25, "P": 50, "K": 30, "SOIL_PH": 5.8, "TEMP": 28.0, "WATERREQUIRED": 500, "RELATIVE_HUMIDITY": 60, "CROPDURATION": 120},
         "Cotton Preset (Alkaline, Warm)": {"N": 120, "P": 50, "K": 50, "SOIL_PH": 7.8, "TEMP": 32.0, "WATERREQUIRED": 700, "RELATIVE_HUMIDITY": 60, "CROPDURATION": 160},
+        "Ragi Preset (Dry, Neutral Soil)": {"N": 40, "P": 20, "K": 20, "SOIL_PH": 6.5, "TEMP": 25.0, "WATERREQUIRED": 350, "RELATIVE_HUMIDITY": 50, "CROPDURATION": 100},
+        "Sugarcane Preset (High Nutrient, Humid)": {"N": 150, "P": 60, "K": 90, "SOIL_PH": 6.8, "TEMP": 30.0, "WATERREQUIRED": 1500, "RELATIVE_HUMIDITY": 80, "CROPDURATION": 300},
     }
 
     # Sidebar inputs

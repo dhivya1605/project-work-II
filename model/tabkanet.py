@@ -25,6 +25,7 @@ from kan_layer import NumericalKANEmbedding
 
 
 class TabKANet(nn.Module):
+
     def __init__(
         self,
         num_features: int,

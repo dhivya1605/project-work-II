@@ -173,6 +173,7 @@ class CropPredictor:
                 - 'confidence': float (0.0 to 1.0)
                 - 'confidence_pct': float (0.0 to 100.0)
                 - 'all_probabilities': dict mapping crop_name -> float prob
+                
                 - 'top_k_crops': list of tuples (crop_name, prob)
                 - 'input_df': pd.DataFrame of processed input features
         """

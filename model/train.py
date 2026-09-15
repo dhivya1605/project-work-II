@@ -41,21 +41,25 @@ from tabkanet import TabKANet
 # CONFIG  -- edit these to match your dataset
 # --------------------------------------------------------------------------- #
 CONFIG = {
-    "DATA_PATH": r"d:\crop-recommendation\dataset\7_Synthetic_Crop_Data_AHAPSF.xlsx", # <-- point this at your synthetic dataset CSV
+    "DATA_PATH": r"d:\crop-recommendation\dataset\10_synthetic_Crop_data_ahapsf1.xlsx", # <-- point this at your synthetic dataset CSV
     "FEATURE_COLUMNS": [
         "SOIL_PH", "N", "P", "K", "TEMP",
         "WATERREQUIRED", "RELATIVE_HUMIDITY", "CROPDURATION",
     ],
     "LABEL_COLUMN": "CROPS",
 
-    "SFOA_POPULATION": 20,
-    "SFOA_ITERATIONS": 30,
+    # --- SFOA: was 20 pop × 30 iters = ~740 RF fits (~2-3 hrs on CPU) ---
+    # Now  10 pop × 15 iters = ~165 RF fits  (~20-30 min on CPU)
+    "SFOA_POPULATION": 10,
+    "SFOA_ITERATIONS": 15,
 
-    "DLO_POPULATION": 12,
-    "DLO_ITERATIONS": 15,
-    "DLO_PROBE_EPOCHS": 8,      # quick training epochs used only during DLO search
+    # --- DLO: was 12 pop × 15 iters × 8 probe epochs = 1,536 epoch-runs ---
+    # Now  8 pop  × 8  iters × 5 probe epochs = 360  epoch-runs  (~5-10 min)
+    "DLO_POPULATION": 8,
+    "DLO_ITERATIONS": 8,
+    "DLO_PROBE_EPOCHS": 5,      # quick training epochs used only during DLO search
 
-    "FINAL_EPOCHS": 80,
+    "FINAL_EPOCHS": 80,         # unchanged — full quality final training
     "BATCH_SIZE": 64,
     "TEST_SIZE": 0.2,
     "VAL_SIZE": 0.1,            # taken out of the training split

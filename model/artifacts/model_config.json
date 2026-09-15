@@ -8,13 +8,19 @@
   "num_features": 4,
   "num_classes": 49,
   "hyperparameters": {
-    "embed_dim": 32,
+    "embed_dim": 48,
     "n_heads": 2,
-    "n_transformer_layers": 1,
+    "n_transformer_layers": 4,
     "ff_dim": 96,
-    "dropout": 0.0,
-    "learning_rate": 0.0017585182823535962
+    "dropout": 0.03729641567307203,
+    "learning_rate": 0.0011319113148835827
   },
-  "test_accuracy": 0.964625850340136,
+  "test_accuracy": 0.9649659863945578,
+  "test_precision": 0.9689438874897609,
+  "test_recall": 0.9649659863945578,
+  "test_f1_score": 0.9645808070385382,
+  "test_precision_macro": 0.968943887489761,
+  "test_recall_macro": 0.9649659863945578,
+  "test_f1_score_macro": 0.9645808070385384,
   "final_val_accuracy": 0.9825680255889893
 }
